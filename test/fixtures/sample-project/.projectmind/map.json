@@ -1,0 +1,82 @@
+{
+  "version": 1,
+  "project": {
+    "name": "shopflow-api",
+    "description": "Order-management HTTP API with JWT auth, backed by PostgreSQL.",
+    "stack": ["node", "express", "postgres"]
+  },
+  "nodes": {
+    "server": {
+      "type": "module",
+      "summary": "HTTP entrypoint; wires JSON parsing, mounts route modules, error handler.",
+      "files": ["src/server.js"],
+      "status": "stable",
+      "lastTouched": "2026-06-20"
+    },
+    "config": {
+      "type": "module",
+      "summary": "Environment-driven config (port, DATABASE_URL, JWT secret/ttl). Single source of env.",
+      "files": ["src/config.js"],
+      "status": "stable",
+      "lastTouched": "2026-06-18"
+    },
+    "db": {
+      "type": "service",
+      "summary": "PostgreSQL pool wrapper: query() helper and withTransaction().",
+      "files": ["src/db.js"],
+      "status": "stable",
+      "lastTouched": "2026-06-19",
+      "notes": "query() logs slow queries over 200ms. withTransaction handles BEGIN/COMMIT/ROLLBACK and always releases the client."
+    },
+    "auth": {
+      "type": "service",
+      "summary": "Issues/verifies JWT access tokens; exposes requireAuth Express middleware.",
+      "files": ["src/auth.js"],
+      "status": "active",
+      "lastTouched": "2026-06-28",
+      "notes": "requireAuth reads a Bearer token, sets req.userId from the token subject. Tokens expire per config.jwtTtlSeconds."
+    },
+    "users-route": {
+      "type": "module",
+      "summary": "Auth endpoints: signup, login, and authenticated /me profile.",
+      "files": ["src/routes/users.js"],
+      "status": "active",
+      "lastTouched": "2026-06-29",
+      "notes": "Passwords hashed with scrypt (salt:hash). Password verification uses timingSafeEqual."
+    },
+    "orders-route": {
+      "type": "module",
+      "summary": "Create and list orders for the authenticated user; totals in integer cents.",
+      "files": ["src/routes/orders.js"],
+      "status": "active",
+      "lastTouched": "2026-06-29",
+      "notes": "POST / creates an order plus order_items inside a transaction."
+    }
+  },
+  "edges": [
+    { "from": "server", "to": "users-route", "rel": "mounts" },
+    { "from": "server", "to": "orders-route", "rel": "mounts" },
+    { "from": "server", "to": "config", "rel": "depends-on" },
+    { "from": "db", "to": "config", "rel": "depends-on" },
+    { "from": "auth", "to": "config", "rel": "depends-on" },
+    { "from": "users-route", "to": "db", "rel": "calls" },
+    { "from": "users-route", "to": "auth", "rel": "calls" },
+    { "from": "orders-route", "to": "db", "rel": "calls" },
+    { "from": "orders-route", "to": "auth", "rel": "calls" }
+  ],
+  "decisions": [
+    { "id": "d1", "text": "Store money as integer cents, never floats.", "date": "2026-06-10", "rationale": "Avoids floating-point rounding errors in totals." },
+    { "id": "d2", "text": "Use scrypt for password hashing.", "date": "2026-06-12", "rationale": "Built into Node crypto; no extra dependency." },
+    { "id": "d3", "text": "JWT for stateless auth instead of server sessions.", "date": "2026-06-15", "rationale": "Simpler horizontal scaling; no shared session store." }
+  ],
+  "conventions": [
+    "All route handlers are async; thrown errors are converted to 500s by the error middleware.",
+    "Money is stored and computed in integer cents.",
+    "Timestamps are UTC ISO strings.",
+    "Never read process.env outside src/config.js."
+  ],
+  "glossary": {
+    "SKU": "Stock Keeping Unit — the identifier for a purchasable item.",
+    "claims": "The decoded payload of a verified JWT (sub, email)."
+  }
+}

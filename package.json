@@ -1,0 +1,51 @@
+{
+  "name": "projectmind",
+  "version": "0.4.0",
+  "description": "Persistent, compact project memory for AI coding agents — an npm library, CLI, and MCP server that stores a small structured map of your repo so agents stop re-reading the codebase every session.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Nodemint <shannirmala01@gmail.com> (https://github.com/Nodemint-dev)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Nodemint-dev/projectmind.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Nodemint-dev/projectmind/issues"
+  },
+  "homepage": "https://github.com/Nodemint-dev/projectmind#readme",
+  "keywords": [
+    "ai",
+    "agent",
+    "mcp",
+    "claude",
+    "cursor",
+    "context",
+    "project-map",
+    "tokens",
+    "memory"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "exports": {
+    ".": "./src/core/index.js"
+  },
+  "bin": {
+    "projectmind": "src/cli/index.js",
+    "projectmind-mcp": "src/mcp/server.js"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "benchmark": "node test/benchmark.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "picomatch": "^4.0.2"
+  }
+}

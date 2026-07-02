@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 240" width="720" height="240" role="img" aria-label="Stat tile: about 20.5 thousand tokens saved in one scripted day of agent work — 22 map reads. By tool: mind_digest about 18.5k, mind_query about 1.2k, mind_context about 0.7k.">
+  <style>
+    :root {
+      --surface: #fcfcfb;
+      --border: rgba(11,11,11,0.10);
+      --ink: #0b0b0b;
+      --ink-2: #52514e;
+      --muted: #898781;
+      --bar: #2a78d6;
+      --grid: #e1e0d9;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --surface: #1a1a19;
+        --border: rgba(255,255,255,0.10);
+        --ink: #ffffff;
+        --ink-2: #c3c2b7;
+        --muted: #898781;
+        --bar: #3987e5;
+        --grid: #2c2c2a;
+      }
+    }
+    text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .hero  { font-size: 44px; font-weight: 650; fill: var(--ink); }
+    .sub   { font-size: 13px; fill: var(--ink-2); }
+    .sub-m { font-size: 12px; fill: var(--muted); }
+    .label { font-size: 12px; fill: var(--ink-2); }
+    .val   { font-size: 12px; font-weight: 600; fill: var(--ink); font-variant-numeric: tabular-nums; }
+    .head  { font-size: 12px; fill: var(--muted); letter-spacing: 0.04em; }
+    .note  { font-size: 11px; fill: var(--muted); }
+  </style>
+
+  <rect x="0.5" y="0.5" width="719" height="239" rx="8" fill="var(--surface)" stroke="var(--border)"/>
+
+  <text x="24" y="88" class="hero">~20.5k</text>
+  <text x="24" y="114" class="sub">tokens saved — one scripted day,</text>
+  <text x="24" y="134" class="sub">22 map reads on the sample project</text>
+  <text x="24" y="158" class="sub-m">≈ $0.06 at $3/MTok input (configurable)</text>
+
+  <line x1="356" y1="44" x2="356" y2="172" stroke="var(--grid)"/>
+
+  <text x="384" y="56" class="head">SAVED BY TOOL</text>
+
+  <text x="384" y="94" class="label">mind_digest</text>
+  <path d="M472,82 h126 a4,4 0 0 1 4,4 v8 a4,4 0 0 1 -4,4 h-126 z" fill="var(--bar)"/>
+  <text x="610" y="94" class="val">~18.5k · 12 reads</text>
+
+  <text x="384" y="130" class="label">mind_query</text>
+  <path d="M472,118 h7 a2,2 0 0 1 2,2 v12 a2,2 0 0 1 -2,2 h-7 z" fill="var(--bar)"/>
+  <text x="492" y="130" class="val">~1.2k · 6 reads</text>
+
+  <text x="384" y="166" class="label">mind_context</text>
+  <path d="M472,154 h3 a2,2 0 0 1 2,2 v12 a2,2 0 0 1 -2,2 h-3 z" fill="var(--bar)"/>
+  <text x="488" y="166" class="val">~0.7k · 4 reads</text>
+
+  <text x="24" y="204" class="note">Local ledger (.projectmind/ledger.json) — gitignored, offline, yours.</text>
+  <text x="24" y="221" class="note">Estimates: tokens ≈ ceil(bytes ÷ 4); baseline = files the agent would have read instead.</text>
+</svg>

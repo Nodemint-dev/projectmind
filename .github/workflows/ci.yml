@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  test:
+    # Full OS x Node matrix — projectmind must work identically for developers
+    # on Linux, macOS, and Windows. The offline-guarantee and hook end-to-end
+    # tests run everywhere.
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm ci
+      - name: Configure git (needed by the hook end-to-end test)
+        run: |
+          git config --global user.email "ci@example.com"
+          git config --global user.name "ci"
+          git config --global init.defaultBranch main
+      - run: npm test
+      - name: Benchmark (prints the estimated savings number)
+        run: npm run benchmark

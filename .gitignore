@@ -1,0 +1,12 @@
+node_modules/
+*.log
+.DS_Store
+
+# local-only tool state (never commit)
+.codegraph/
+.projectmind/map.local.json
+.projectmind/ledger.json
+
+# build artifacts
+*.tgz
+*.vsix

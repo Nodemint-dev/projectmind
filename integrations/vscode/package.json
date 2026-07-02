@@ -1,0 +1,24 @@
+{
+  "name": "projectmind-savings",
+  "displayName": "projectmind — token savings",
+  "description": "Shows how many tokens (and dollars) projectmind has saved your AI coding agent, right in the status bar. Reads the local .projectmind/ledger.json — fully offline, nothing leaves your machine.",
+  "version": "0.1.0",
+  "publisher": "projectmind",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": ["Other"],
+  "main": "./extension.js",
+  "activationEvents": [
+    "workspaceContains:.projectmind"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "projectmind.showSavings",
+        "title": "projectmind: Show token savings"
+      }
+    ]
+  }
+}

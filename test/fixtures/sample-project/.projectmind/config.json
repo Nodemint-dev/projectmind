@@ -1,0 +1,8 @@
+{
+  "digest": {
+    "maxNodes": 60,
+    "includeStatuses": ["active", "stable"],
+    "recentDecisions": 8
+  },
+  "scope": "repo"
+}

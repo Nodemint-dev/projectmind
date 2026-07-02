@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 210" width="720" height="210" role="img" aria-label="Bar chart: reading the codebase costs about 1,953 tokens per session; the projectmind digest costs about 412 tokens — 78.9% less.">
+  <style>
+    :root {
+      --surface: #fcfcfb;
+      --border: rgba(11,11,11,0.10);
+      --ink: #0b0b0b;
+      --ink-2: #52514e;
+      --muted: #898781;
+      --baseline-bar: #c3c2b7;
+      --focus-bar: #2a78d6;
+      --delta: #006300;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --surface: #1a1a19;
+        --border: rgba(255,255,255,0.10);
+        --ink: #ffffff;
+        --ink-2: #c3c2b7;
+        --muted: #898781;
+        --baseline-bar: #383835;
+        --focus-bar: #3987e5;
+        --delta: #0ca30c;
+      }
+    }
+    text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .title { font-size: 15px; font-weight: 600; fill: var(--ink); }
+    .cat   { font-size: 13px; fill: var(--ink-2); }
+    .val   { font-size: 13px; font-weight: 600; fill: var(--ink); font-variant-numeric: tabular-nums; }
+    .delta { font-size: 13px; font-weight: 650; fill: var(--delta); }
+    .note  { font-size: 11px; fill: var(--muted); }
+  </style>
+
+  <rect x="0.5" y="0.5" width="719" height="209" rx="8" fill="var(--surface)" stroke="var(--border)"/>
+
+  <text x="24" y="34" class="title">Understanding a project — estimated tokens per session</text>
+
+  <text x="24" y="60" class="cat">Reading the codebase (8 files)</text>
+  <path d="M24,68 h548 a4,4 0 0 1 4,4 v14 a4,4 0 0 1 -4,4 h-548 z" fill="var(--baseline-bar)"/>
+  <text x="584" y="84" class="val">~1,953 tokens</text>
+
+  <text x="24" y="122" class="cat">projectmind digest</text>
+  <path d="M24,130 h113 a4,4 0 0 1 4,4 v14 a4,4 0 0 1 -4,4 h-113 z" fill="var(--focus-bar)"/>
+  <text x="149" y="146" class="val">~412 tokens</text>
+  <text x="238" y="146" class="delta">−78.9%</text>
+
+  <text x="24" y="186" class="note">Estimated: tokens ≈ ceil(chars ÷ 4). Baseline = README + config + all src/ files of the sample project. Reproduce: npm run benchmark</text>
+</svg>
