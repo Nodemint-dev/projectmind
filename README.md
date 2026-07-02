@@ -12,6 +12,8 @@ ledger shows you exactly how many tokens (and dollars) that saved.
 ![network calls](https://img.shields.io/badge/network%20calls-0%20(enforced%20by%20CI)-success)
 ![license](https://img.shields.io/badge/license-MIT-lightgrey)
 
+![Demo: init --seed scaffolds the map, setup wires every agent, the digest opens with the session handoff, and projectmind savings shows ~20.5k tokens saved](docs/assets/demo.gif)
+
 ![Benchmark: reading the codebase ~1,953 tokens vs projectmind digest ~412 tokens, −78.9%](docs/assets/benchmark.svg)
 
 Every AI coding session starts the same way: the agent has no memory of your
