@@ -32,7 +32,7 @@ not its *byte* size — so the savings grow with the repo.
 ## Quick start
 
 ```bash
-npm install -g projectmind        # or use npx
+npm install -g @nodemint/projectmind        # installs the `projectmind` CLI
 cd your-repo
 projectmind init --seed           # scaffold + propose a starter map from your repo layout
 projectmind setup                 # wire the MCP server + rules into every agent you use
@@ -235,7 +235,7 @@ Target one with `projectmind setup --agent cursor`. Manual wiring is one line
 everywhere:
 
 ```json
-{ "mcpServers": { "projectmind": { "command": "npx", "args": ["-y", "projectmind-mcp"] } } }
+{ "mcpServers": { "projectmind": { "command": "npx", "args": ["-y", "-p", "@nodemint/projectmind", "projectmind-mcp"] } } }
 ```
 
 ## Where projectmind fits (and what it deliberately isn't)

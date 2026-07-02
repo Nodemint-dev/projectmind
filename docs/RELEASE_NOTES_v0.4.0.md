@@ -26,7 +26,7 @@ local ledger shows you exactly how many tokens (and dollars) that saved.
 ## Install
 
 ```bash
-npm install -g projectmind
+npm install -g @nodemint/projectmind
 cd your-repo
 projectmind init --seed && projectmind setup
 ```

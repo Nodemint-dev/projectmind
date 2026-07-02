@@ -1,6 +1,9 @@
 {
-  "name": "projectmind",
+  "name": "@nodemint/projectmind",
   "version": "0.4.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "Persistent, compact project memory for AI coding agents — an npm library, CLI, and MCP server that stores a small structured map of your repo so agents stop re-reading the codebase every session.",
   "type": "module",
   "license": "MIT",

@@ -5,6 +5,10 @@ to [Semantic Versioning](https://semver.org/).
 
 ## [0.4.0] - 2026-07-02
 
+> Published to npm as **`@nodemint/projectmind`** — the registry blocked the
+> bare name as too similar to an existing `project-mind` package. The CLI
+> commands are unchanged: `projectmind` and `projectmind-mcp`.
+
 ### Added
 - **Session handoff** — the feature no comparable tool has. `mind_handoff`
   (MCP) / `projectmind handoff` (CLI) records "what I was doing, what's next";
