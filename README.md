@@ -119,6 +119,22 @@ CI on **Linux, macOS, and Windows × Node 18/20/22**. Paths, globs, atomic
 renames, and the installed git hook are exercised on all three. The map format
 is plain JSON — nothing OS-specific is ever written to your repo.
 
+Verified against real open-source repos (fresh clone → `projectmind init --seed`,
+2026-07-02):
+
+| Repo | Stack detected | Seeded nodes | Repo size (est.) | Digest |
+|------|---------------|--------------|------------------|--------|
+| expressjs/express | node | `examples`, `lib`, `test` | ~175k tokens / 152 files | **~86 tokens** |
+| pallets/flask | python | `examples`, `src`, `tests` | ~153k tokens / 104 files | **~111 tokens** |
+| flutter/pinball | dart, flutter | `lib`, `packages`, `test`, `web` | ~513k tokens / 637 files | **~99 tokens** |
+
+That's the core scaling property in the wild: the digest tracks a project's
+*conceptual* size, staying ~100 tokens whether the repo is 150k or 500k tokens.
+(A freshly seeded digest is a starter skeleton — a curated map with decisions
+and conventions lands around 400 tokens, like the benchmark fixture. We quote
+the honest per-session savings number — 78.9% — from the benchmark, not from
+these whole-repo ratios.)
+
 ## How it works
 
 ```mermaid
