@@ -5,9 +5,9 @@
 import fs from "node:fs";
 import path from "node:path";
 
-// Scoped package with two bins: -p pulls @nodemint/projectmind, then the
-// projectmind-mcp bin from it is executed.
-const MCP_ENTRY = { command: "npx", args: ["-y", "-p", "@nodemint/projectmind", "projectmind-mcp"] };
+// `mcp` is a subcommand of the main bin, so plain npx works (same invocation
+// the official MCP Registry entry uses).
+const MCP_ENTRY = { command: "npx", args: ["-y", "@nodemint/projectmind", "mcp"] };
 
 const RULES_BEGIN = "<!-- projectmind:begin -->";
 const RULES_END = "<!-- projectmind:end -->";

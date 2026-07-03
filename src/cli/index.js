@@ -29,6 +29,7 @@ Commands:
   doctor                        Report drift: nodes pointing at missing files, or gone stale
   watch                         Live-update file→module freshness on save (Ctrl-C to stop)
   install-hook                  Install the git post-commit auto-updater
+  mcp                           Run the MCP server on stdio (what agents connect to)
 
 Options:
   --local                       Write to the per-developer overlay (map.local.json)
@@ -70,10 +71,18 @@ function out(obj) {
   process.stdout.write("\n");
 }
 
-function main() {
+async function main() {
   const { opts, rest } = parseArgs(process.argv.slice(2));
   const cmd = rest.shift();
   if (!cmd || opts.help) { out(HELP); return; }
+
+  // `projectmind mcp` starts the stdio MCP server — the entrypoint MCP
+  // registry clients use (npx @nodemint/projectmind mcp). Must not write
+  // anything to stdout itself; the transport owns it.
+  if (cmd === "mcp") {
+    await import("../mcp/server.js");
+    return;
+  }
 
   const r = opts.root ? core.root(opts.root) : core.root();
   const scope = opts.local ? "local" : undefined; // undefined => config default (repo)

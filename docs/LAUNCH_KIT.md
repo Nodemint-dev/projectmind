@@ -8,20 +8,28 @@ catch the long tail).
 
 ## 1. MCP directories
 
-### modelcontextprotocol/servers (official community list — highest value)
+### Official MCP Registry (registry.modelcontextprotocol.io — highest value)
 
-Fork `https://github.com/modelcontextprotocol/servers`, add this line to the
-community servers section of README.md (alphabetical order), open a PR:
+The old README-list-PR process is gone; the official path is now the MCP
+Registry, published via CLI. Prereqs are already in the repo (`server.json`,
+`mcpName` in package.json) — after `npm publish` of v0.4.1, run:
 
-```markdown
-- [projectmind](https://github.com/Nodemint-dev/projectmind) - Persistent, compact project memory for coding agents: a git-committed project map (modules, decisions, conventions) read as one ~400-token digest instead of re-scanning the codebase — with a local ledger showing tokens/dollars saved, session handoff, and a CI-enforced offline guarantee.
+```bash
+brew install mcp-publisher
+cd "/Users/shannirmala/Documents/Web Projects/projectmind"
+mcp-publisher login github     # browser must be signed in as Nodemint-dev
+mcp-publisher publish
+# verify:
+curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=projectmind"
 ```
 
-PR title: `Add projectmind — persistent project memory with measured token savings`
+Note: the registry verifies ownership by checking that the *published* npm
+package's `mcpName` matches `server.json`'s `name` — so v0.4.1 must be on npm
+before `mcp-publisher publish` will succeed.
 
 ### mcp.so
 Submit at https://mcp.so/submit — Name: `projectmind` · Repo:
-`https://github.com/Nodemint-dev/projectmind` · Install: `npx -y -p @nodemint/projectmind projectmind-mcp`
+`https://github.com/Nodemint-dev/projectmind` · Install: `npx -y @nodemint/projectmind mcp`
 
 Description (short): *Persistent project memory for AI coding agents. One
 ~400-token digest replaces codebase re-scanning every session; a local

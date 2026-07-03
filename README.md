@@ -237,7 +237,7 @@ Target one with `projectmind setup --agent cursor`. Manual wiring is one line
 everywhere:
 
 ```json
-{ "mcpServers": { "projectmind": { "command": "npx", "args": ["-y", "-p", "@nodemint/projectmind", "projectmind-mcp"] } } }
+{ "mcpServers": { "projectmind": { "command": "npx", "args": ["-y", "@nodemint/projectmind", "mcp"] } } }
 ```
 
 ## Where projectmind fits (and what it deliberately isn't)

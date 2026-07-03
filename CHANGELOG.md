@@ -3,6 +3,15 @@
 All notable changes to this project are documented here. This project adheres
 to [Semantic Versioning](https://semver.org/).
 
+## [0.4.1] - 2026-07-03
+
+### Added
+- `projectmind mcp` subcommand — runs the stdio MCP server via the main bin,
+  so `npx @nodemint/projectmind mcp` works (required by the official MCP
+  Registry, whose clients invoke the package's default binary).
+- `mcpName` field in package.json and a `server.json` — the ownership
+  handshake for publishing to registry.modelcontextprotocol.io.
+
 ## [0.4.0] - 2026-07-02
 
 > Published to npm as **`@nodemint/projectmind`** — the registry blocked the
