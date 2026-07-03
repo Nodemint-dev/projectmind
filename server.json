@@ -1,6 +1,6 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.nodemint-dev/projectmind",
+  "name": "io.github.Nodemint-dev/projectmind",
   "title": "projectmind",
   "description": "Persistent project memory for AI coding agents: one compact digest instead of re-reading the repo.",
   "repository": {
