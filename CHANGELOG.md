@@ -3,6 +3,13 @@
 All notable changes to this project are documented here. This project adheres
 to [Semantic Versioning](https://semver.org/).
 
+## [0.4.2] - 2026-07-03
+
+### Fixed
+- MCP Registry namespace casing: `mcpName` must match the GitHub account
+  exactly (`io.github.Nodemint-dev/projectmind`); the registry compares it
+  case-sensitively against the published npm package.
+
 ## [0.4.1] - 2026-07-03
 
 ### Added
