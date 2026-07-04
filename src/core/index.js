@@ -361,6 +361,21 @@ function syncRuleDigests(r, digestText) {
   }
 }
 
+// Which rules files currently carry an embedded digest — i.e. every agent
+// session there sees the map for free, with no tool call and therefore
+// nothing recorded in the savings ledger. Informational only: deliberately
+// NOT converted into a token/dollar estimate, since there's no way to
+// observe how many times an agent actually reads a static context file.
+export function embeddedDigestFiles(r = root()) {
+  const found = [];
+  for (const relFile of RULES_FILES) {
+    let content;
+    try { content = fs.readFileSync(path.join(r, relFile), "utf8"); } catch { continue; }
+    if (content.includes(DIGEST_BLOCK_BEGIN) && content.includes(DIGEST_BLOCK_END)) found.push(relFile);
+  }
+  return found;
+}
+
 // ---------------------------------------------------------------------------
 // Init
 // ---------------------------------------------------------------------------
@@ -616,6 +631,7 @@ export function stats(r = root()) {
     glossaryTerms: Object.keys(m.glossary || {}).length,
     digestChars: d.length,
     digestTokensEst: estimateTokens(d),
+    embeddedDigestIn: embeddedDigestFiles(r),
   };
 }
 

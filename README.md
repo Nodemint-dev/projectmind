@@ -89,6 +89,12 @@ The ledger is honest by design: every number is labelled an **estimate**
 and the file is gitignored — it's your private data, on your machine, deletable
 at any time.
 
+**One deliberate gap, stated plainly:** the ledger only counts *tool calls*
+(`mind_digest`, `mind_query`, `mind_context`). The embedded digest described
+below never requires a tool call — that's the whole point — so its savings
+don't show up as a number here. `projectmind savings` names which rules files
+carry it instead of inventing a token count we can't actually observe.
+
 ## Session handoff — pick up exactly where you left off
 
 The thing every agent session loses is *working state*: what you were in the

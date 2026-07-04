@@ -3,6 +3,19 @@
 All notable changes to this project are documented here. This project adheres
 to [Semantic Versioning](https://semver.org/).
 
+## [0.5.1] - 2026-07-04
+
+### Added
+- `projectmind savings` and `mind_stats` now report which rules files
+  currently carry an embedded digest (`embeddedDigestFiles()` /
+  `stats().embeddedDigestIn`). v0.5.0's embedded-digest mechanism deliberately
+  avoids a tool call — which means it was invisible to the read-count ledger,
+  making the counter look stuck at ~0 even when the fix was working
+  perfectly. This surfaces it as an honest, factual note instead of a
+  fabricated token estimate: we can observe *that* a file carries the
+  embedded map, not *how many times* an agent actually read it, so no number
+  is invented for it.
+
 ## [0.5.0] - 2026-07-04
 
 ### Added

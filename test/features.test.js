@@ -5,9 +5,9 @@ import path from "node:path";
 import { tmpRoot, cleanup } from "./helpers.js";
 import {
   init, patch, load, detectStack, proposeSeed, seed, drift,
-  buildContext, context, hasCodegraph, digest, query,
-  embedDigestBlock, committedDigest, RULES_MARKER_BEGIN, RULES_MARKER_END,
-  DIGEST_BLOCK_BEGIN, DIGEST_BLOCK_END,
+  buildContext, context, hasCodegraph, digest, query, stats,
+  embedDigestBlock, committedDigest, embeddedDigestFiles,
+  RULES_MARKER_BEGIN, RULES_MARKER_END, DIGEST_BLOCK_BEGIN, DIGEST_BLOCK_END,
 } from "../src/core/index.js";
 import { setupAgents, setupGlobalAgents } from "../src/setup/index.js";
 import { reconcile } from "../src/watch/index.js";
@@ -320,5 +320,22 @@ test("save() never embeds local-scope (personal) content into a committed rules 
     patch({ handoff: "PERSONAL_WIP_LEAK_CHECK" }, r, { scope: "local" });
     const claudeMd = fs.readFileSync(path.join(r, "CLAUDE.md"), "utf8");
     assert.doesNotMatch(claudeMd, /PERSONAL_WIP_LEAK_CHECK/);
+  } finally { cleanup(r); }
+});
+
+test("embeddedDigestFiles reports which rules files carry an embedded digest, and stats() surfaces it", () => {
+  const r = tmpRoot();
+  try {
+    scaffoldRepo(r);
+    init(r);
+    assert.deepEqual(embeddedDigestFiles(r), [], "nothing embedded before setup runs");
+
+    setupAgents(r, ["claude", "cursor"]);
+    const after = embeddedDigestFiles(r);
+    assert.ok(after.includes("CLAUDE.md"));
+    assert.ok(after.includes(".cursorrules"));
+    assert.ok(!after.includes(".windsurfrules"), "agent never set up must not be reported");
+
+    assert.deepEqual(stats(r).embeddedDigestIn.sort(), after.sort());
   } finally { cleanup(r); }
 });

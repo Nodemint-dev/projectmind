@@ -247,6 +247,14 @@ async function main() {
         for (const [t, v] of tools) out(`    ${t.padEnd(14)} ${String(v.reads).padStart(4)} reads   ~${fmt(v.tokensSavedEst)} saved`);
       }
       if (!s.totals.reads) out(`  No reads recorded yet — savings accrue as your agent uses the MCP tools.`);
+      const embeddedIn = core.embeddedDigestFiles(r);
+      if (embeddedIn.length) {
+        out(``);
+        out(`  Also embedded (auto-synced, not counted above): ${embeddedIn.join(", ")}`);
+        out(`  Every agent session there sees the map for free — no tool call needed, so there's`);
+        out(`  nothing to attribute a token count to. This is likely your biggest saving; it just`);
+        out(`  isn't one the ledger above can observe.`);
+      }
       out(``);
       out(`  Methodology: ${s.methodology}.`);
       break;
