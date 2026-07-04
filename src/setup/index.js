@@ -2,8 +2,17 @@
 // for each supported agent, idempotently. JSON configs are MERGED (never
 // clobbered); if an existing config is unparseable we back it up and skip it
 // rather than destroy it. Rules files get a marked, idempotent block.
+//
+// Two scopes:
+//  - project (default): writes .mcp.json etc. in the current repo only.
+//  - global: registers projectmind once, for every future project — the same
+//    "install once, works everywhere" model as codegraph's user-scoped MCP
+//    entry. No rules-file text is global (CLAUDE.md/AGENTS.md are inherently
+//    per-repo), only the MCP server registration.
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
 
 // `mcp` is a subcommand of the main bin, so plain npx works (same invocation
 // the official MCP Registry entry uses).
@@ -56,8 +65,9 @@ const AGENTS = {
 
 export const SUPPORTED_AGENTS = Object.keys(AGENTS);
 
-function mergeJsonConfig(r, spec) {
-  const file = path.join(r, spec.file);
+// file: absolute path. label: what to report back (may differ from `file`,
+// e.g. "~/.cursor/mcp.json" for readability).
+function mergeJsonConfig(file, key, label = file) {
   let data = {};
   if (fs.existsSync(file)) {
     try {
@@ -65,15 +75,15 @@ function mergeJsonConfig(r, spec) {
     } catch {
       const backup = `${file}.bak-${Date.now()}`;
       try { fs.copyFileSync(file, backup); } catch { /* ignore */ }
-      return { file: spec.file, status: "skipped-unparseable", backup };
+      return { file: label, status: "skipped-unparseable", backup };
     }
   }
-  data[spec.key] = data[spec.key] || {};
-  if (data[spec.key].projectmind) return { file: spec.file, status: "already" };
-  data[spec.key].projectmind = { ...MCP_ENTRY };
+  data[key] = data[key] || {};
+  if (data[key].projectmind) return { file: label, status: "already" };
+  data[key].projectmind = { ...MCP_ENTRY };
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, JSON.stringify(data, null, 2) + "\n");
-  return { file: spec.file, status: "written" };
+  return { file: label, status: "written" };
 }
 
 function appendRulesBlock(r, relFile) {
@@ -94,8 +104,56 @@ export function setupAgents(r, agents = "all") {
   for (const key of keys) {
     const a = AGENTS[key];
     if (!a) continue;
-    if (a.json) results.push({ agent: key, label: a.label, ...mergeJsonConfig(r, a.json) });
+    if (a.json) results.push({ agent: key, label: a.label, ...mergeJsonConfig(path.join(r, a.json.file), a.json.key, a.json.file) });
     if (a.rules) results.push({ agent: key, label: a.label, ...appendRulesBlock(r, a.rules) });
+  }
+  return results;
+}
+
+// ---------------------------------------------------------------------------
+// Global (user) scope — register once, available in every future project
+// without a per-project .mcp.json. Only the MCP server entry is global; rules
+// files (CLAUDE.md, AGENTS.md, ...) are inherently per-repo and untouched.
+// ---------------------------------------------------------------------------
+export const SUPPORTED_GLOBAL_AGENTS = ["claude", "cursor", "windsurf", "gemini"];
+
+function globalJsonPath(agent, homeDir) {
+  switch (agent) {
+    case "cursor": return path.join(homeDir, ".cursor", "mcp.json");
+    case "windsurf": return path.join(homeDir, ".codeium", "windsurf", "mcp_config.json");
+    case "gemini": return path.join(homeDir, ".gemini", "settings.json");
+    default: return null;
+  }
+}
+
+// Claude Code has no documented global config file to hand-edit safely, but
+// ships a first-class CLI verb for exactly this (`claude mcp add --scope
+// user`) — shell out to it rather than guess an internal file format.
+function addClaudeUserScope(execFile = execFileSync) {
+  const label = "claude mcp (user scope)";
+  try {
+    execFile("claude", ["mcp", "add", "projectmind", "--scope", "user", "--", "npx", "-y", "@nodemint/projectmind", "mcp"], { stdio: "pipe" });
+    return { file: label, status: "written" };
+  } catch (err) {
+    const msg = String(err?.stderr || err?.message || "");
+    if (/already exists/i.test(msg)) return { file: label, status: "already" };
+    return { file: label, status: "failed", error: (msg.split("\n").find(Boolean) || "is the `claude` CLI installed and on PATH?").trim() };
+  }
+}
+
+// homeDir is overridable for tests; defaults to the real home directory.
+export function setupGlobalAgents(agents = "all", { homeDir = os.homedir(), execFile = execFileSync } = {}) {
+  const keys = agents === "all" || !agents ? SUPPORTED_GLOBAL_AGENTS : [].concat(agents).filter((k) => SUPPORTED_GLOBAL_AGENTS.includes(k));
+  const results = [];
+  for (const key of keys) {
+    if (key === "claude") {
+      results.push({ agent: "claude", label: "Claude Code", ...addClaudeUserScope(execFile) });
+      continue;
+    }
+    const file = globalJsonPath(key, homeDir);
+    if (!file) continue;
+    const label = key === "cursor" ? "~/.cursor/mcp.json" : key === "windsurf" ? "~/.codeium/windsurf/mcp_config.json" : "~/.gemini/settings.json";
+    results.push({ agent: key, label: AGENTS[key]?.label || key, ...mergeJsonConfig(file, "mcpServers", label) });
   }
   return results;
 }

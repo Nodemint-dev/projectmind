@@ -240,6 +240,36 @@ everywhere:
 { "mcpServers": { "projectmind": { "command": "npx", "args": ["-y", "@nodemint/projectmind", "mcp"] } } }
 ```
 
+### Install once, use everywhere — global setup
+
+`projectmind setup` above is per-project. Run `projectmind setup --global`
+instead to register the MCP server **once**, so it's available in every
+project you open from then on — no per-repo `.mcp.json`, no re-running setup.
+Supported: Claude Code, Cursor, Windsurf, Gemini CLI.
+
+```bash
+projectmind setup --global
+```
+
+For Claude Code this shells out to its own `claude mcp add --scope user`
+(the same mechanism tools like codegraph use for global registration) rather
+than hand-editing its internal config file. For the others it merges into
+their global config (`~/.cursor/mcp.json`, `~/.codeium/windsurf/mcp_config.json`,
+`~/.gemini/settings.json`) the same idempotent way the per-project setup does.
+
+**Two things this can't do**, by design:
+- **Rules files stay per-project.** `CLAUDE.md` / `.cursorrules` / etc. are
+  checked-in project conventions — there's no sane "global" version of them,
+  so `--global` only registers the MCP *server*, not the nudge-text. Without
+  a project's `.projectmind/` map, `mind_digest` just returns an empty-but-valid
+  digest — harmless, but the agent won't be as strongly reminded to call it.
+- **A chat session already open won't see it.** Every MCP client (Claude Code,
+  Cursor, etc.) loads its server list once at session start — that's an MCP
+  client behavior, not something any server can override. Global scope means
+  every *new* session in every *future* project has it automatically; it does
+  not retroactively add it to a conversation already in progress. Restart the
+  agent once after running `--global`, and you're done for good.
+
 ## Where projectmind fits (and what it deliberately isn't)
 
 | | Structural code graphs (e.g. codegraph) | Coding-policy plugins (e.g. ponytail) | **projectmind** |

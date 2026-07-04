@@ -3,6 +3,22 @@
 All notable changes to this project are documented here. This project adheres
 to [Semantic Versioning](https://semver.org/).
 
+## [0.4.3] - 2026-07-03
+
+### Added
+- **`projectmind setup --global`** — registers the MCP server once for every
+  future project, instead of per-repo `.mcp.json`. For Claude Code this shells
+  out to `claude mcp add --scope user` (the same mechanism codegraph and other
+  tools use for global registration) rather than hand-editing its internal
+  config; Cursor, Windsurf, and Gemini CLI get the same idempotent merge into
+  their global config files (`~/.cursor/mcp.json`,
+  `~/.codeium/windsurf/mcp_config.json`, `~/.gemini/settings.json`).
+
+Prompted by real dogfooding: without this, a fresh project needed
+`projectmind setup` run every time, unlike globally-registered MCP servers.
+Rules files (`CLAUDE.md` etc.) intentionally stay per-project — there's no
+sane "global" convention text — so `--global` only wires the server itself.
+
 ## [0.4.2] - 2026-07-03
 
 ### Fixed

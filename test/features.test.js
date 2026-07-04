@@ -7,7 +7,7 @@ import {
   init, patch, load, detectStack, proposeSeed, seed, drift,
   buildContext, context, hasCodegraph, digest, query,
 } from "../src/core/index.js";
-import { setupAgents } from "../src/setup/index.js";
+import { setupAgents, setupGlobalAgents } from "../src/setup/index.js";
 import { reconcile } from "../src/watch/index.js";
 
 function scaffoldRepo(r) {
@@ -165,4 +165,53 @@ test("setupAgents backs up (never clobbers) an unparseable JSON config", () => {
     assert.ok(jsonResult.backup);
     assert.ok(fs.existsSync(jsonResult.backup));
   } finally { cleanup(r); }
+});
+
+test("setupGlobalAgents registers Claude Code via `claude mcp add --scope user`, not a hand-edited file", () => {
+  const calls = [];
+  const fakeExecFile = (cmd, args) => { calls.push([cmd, args]); return ""; };
+  const res = setupGlobalAgents("claude", { homeDir: tmpRoot(), execFile: fakeExecFile });
+  assert.equal(res.length, 1);
+  assert.equal(res[0].status, "written");
+  assert.deepEqual(calls[0][0], "claude");
+  assert.deepEqual(calls[0][1], ["mcp", "add", "projectmind", "--scope", "user", "--", "npx", "-y", "@nodemint/projectmind", "mcp"]);
+});
+
+test("setupGlobalAgents treats an existing Claude registration as already-done, not a failure", () => {
+  const fakeExecFile = () => { const e = new Error("cmd failed"); e.stderr = "Error: MCP server \"projectmind\" already exists"; throw e; };
+  const res = setupGlobalAgents("claude", { homeDir: tmpRoot(), execFile: fakeExecFile });
+  assert.equal(res[0].status, "already");
+});
+
+test("setupGlobalAgents reports a clear error when the claude CLI is missing, without throwing", () => {
+  const fakeExecFile = () => { const e = new Error("spawn claude ENOENT"); throw e; };
+  const res = setupGlobalAgents("claude", { homeDir: tmpRoot(), execFile: fakeExecFile });
+  assert.equal(res[0].status, "failed");
+  assert.ok(res[0].error);
+});
+
+test("setupGlobalAgents writes Cursor/Windsurf/Gemini configs under the given home dir, not the real one", () => {
+  const home = tmpRoot();
+  try {
+    const res = setupGlobalAgents(["cursor", "windsurf", "gemini"], { homeDir: home });
+    assert.equal(res.length, 3);
+    assert.ok(fs.existsSync(path.join(home, ".cursor", "mcp.json")));
+    assert.ok(fs.existsSync(path.join(home, ".codeium", "windsurf", "mcp_config.json")));
+    assert.ok(fs.existsSync(path.join(home, ".gemini", "settings.json")));
+    const cursorCfg = JSON.parse(fs.readFileSync(path.join(home, ".cursor", "mcp.json"), "utf8"));
+    assert.ok(cursorCfg.mcpServers.projectmind);
+    assert.equal(res.find((x) => x.agent === "cursor").file, "~/.cursor/mcp.json");
+
+    // idempotent: running again doesn't duplicate or error
+    const second = setupGlobalAgents(["cursor"], { homeDir: home });
+    assert.equal(second[0].status, "already");
+  } finally { cleanup(home); }
+});
+
+test("setupGlobalAgents never touches per-project rules files (CLAUDE.md etc.) — global scope is MCP-only", () => {
+  const home = tmpRoot();
+  try {
+    setupGlobalAgents(["cursor"], { homeDir: home });
+    assert.ok(!fs.existsSync(path.join(home, ".cursorrules")));
+  } finally { cleanup(home); }
 });

@@ -2,7 +2,7 @@
 // Human-facing CLI. A thin adapter: argv -> core function -> stdout.
 import * as core from "../core/index.js";
 import { installHook } from "../hooks/install.js";
-import { setupAgents, SUPPORTED_AGENTS } from "../setup/index.js";
+import { setupAgents, setupGlobalAgents, SUPPORTED_AGENTS, SUPPORTED_GLOBAL_AGENTS } from "../setup/index.js";
 import { watch } from "../watch/index.js";
 import { savingsSummary, resolvePrice } from "../core/ledger.js";
 
@@ -14,6 +14,7 @@ Commands:
   init [--seed]                 Scaffold .projectmind/; --seed proposes a starter map from repo layout
   seed                          Propose a starter map from repo layout (adds missing nodes only)
   setup [--agent <name>]        Wire the MCP server + rules into agents (${SUPPORTED_AGENTS.join(", ")}, or all)
+  setup --global [--agent <name>]  Register the MCP server once, for every future project (${SUPPORTED_GLOBAL_AGENTS.join(", ")})
   digest                        Print the compact digest (what the agent reads first)
   context [--files a,b] [--node id] [--term t] [--depth 1]   Task-scoped subgraph
   query <id>                    Full detail for one node (files, notes, edges)
@@ -36,6 +37,7 @@ Options:
   --root <dir>                  Operate on a specific project root
   --seed                        (init) seed a starter map after scaffolding
   --agent <name>                (setup) target one agent; default all
+  --global                      (setup) register once for every future project, instead of just this repo
   --files <a,b,c>               (context) comma-separated files you're working on
   --node <id>                   (context) seed the subgraph from this node
   --term <t>                    (context) seed the subgraph from a keyword
@@ -54,6 +56,7 @@ function parseArgs(argv) {
     else if (a === "--seed") opts.seed = true;
     else if (a === "--root") opts.root = argv[++i];
     else if (a === "--agent") opts.agent = argv[++i];
+    else if (a === "--global") opts.global = true;
     else if (a === "--files") opts.files = argv[++i];
     else if (a === "--node") opts.node = argv[++i];
     else if (a === "--term") opts.term = argv[++i];
@@ -108,6 +111,15 @@ async function main() {
     }
     case "setup": {
       const agents = opts.agent || "all";
+      if (opts.global) {
+        const results = setupGlobalAgents(agents);
+        out(`Registered projectmind globally (every future project will have it, no per-repo setup needed):`);
+        for (const x of results) {
+          out(`  ${x.status.padEnd(18)} ${x.file}${x.error ? ` — ${x.error}` : ""}`);
+        }
+        out("\nRestart your agent for this to take effect — including in any session already open.");
+        break;
+      }
       const results = setupAgents(r, agents);
       out(`Wired projectmind into agents at ${r}:`);
       for (const x of results) out(`  ${x.status.padEnd(18)} ${x.file}`);
