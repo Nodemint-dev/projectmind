@@ -13,13 +13,13 @@ const TOOLS = [
   {
     name: "mind_digest",
     description:
-      "Read this FIRST at the start of any task, before reading source files or asking the user about project structure. Returns a compact map of modules, dependencies, decisions, and conventions. Reading this instead of scanning the codebase is the primary way this project saves you tokens.",
+      "Call this BEFORE running ls, find, glob, grep, tree, or reading any file, whenever the task is to explain, describe, summarize, or give an overview of this project or its architecture, or when you otherwise need to orient yourself in an unfamiliar codebase. This includes questions like \"what is this project\", \"explain this codebase\", \"what's the tech stack\", or \"how is this structured\" — call mind_digest first, THEN use its output to decide whether further file exploration is even needed. Returns a compact map of modules, dependencies, decisions, and conventions in a few hundred tokens, replacing what would otherwise be many file reads.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
   },
   {
     name: "mind_context",
     description:
-      "Task-scoped context. Given the files you're about to edit (and/or a node id or keyword), returns ONLY the relevant part of the map: those modules in full plus their direct dependencies. Use this over mind_digest when you already know which files a task touches — it's the most surgical, token-cheap option.",
+      "Call this BEFORE reading/greping files, when you're about to work on specific files or a module and want its purpose, notes, and direct dependencies without opening them. Given the files you're about to edit (and/or a node id or keyword), returns ONLY the relevant part of the map. Use this over mind_digest when you already know which files a task touches — it's the most surgical, token-cheap option.",
     inputSchema: {
       type: "object",
       properties: {
@@ -179,7 +179,7 @@ function handleTool(name, args) {
 
 async function main() {
   const server = new Server(
-    { name: "projectmind", version: "0.4.3" },
+    { name: "projectmind", version: "0.4.4" },
     { capabilities: { tools: {} } }
   );
 

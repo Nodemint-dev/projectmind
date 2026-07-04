@@ -23,7 +23,7 @@ const RULES_END = "<!-- projectmind:end -->";
 const RULES_BODY = [
   RULES_BEGIN,
   "## projectmind",
-  "At the start of a task, call `mind_digest` before reading source files or asking about project structure.",
+  "Before running ls/find/glob/grep or reading files to explain, describe, or orient in this project (e.g. \"what is this project\", \"explain this codebase\", \"how is this structured\"), call `mind_digest` first — it answers most of that in a few hundred tokens.",
   "Use `mind_context({ files })` for a task-scoped subgraph, or `mind_query(<id>)` for one module's files/notes.",
   "After a structural change, architectural decision, or newly learned convention, call `mind_update` (only the fields that changed).",
   "Before the session ends (or when context is about to be compacted), call `mind_handoff` with a one-line note on what's in progress and what's next — it leads the next session's digest.",

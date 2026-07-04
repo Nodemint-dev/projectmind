@@ -3,6 +3,22 @@
 All notable changes to this project are documented here. This project adheres
 to [Semantic Versioning](https://semver.org/).
 
+## [0.4.4] - 2026-07-04
+
+### Changed
+- Strengthened `mind_digest`/`mind_context` tool descriptions and the
+  `setup`-generated rules block (`CLAUDE.md` etc.) to name the exact trigger
+  explicitly — "before running ls/find/glob/grep or reading files" — instead
+  of the vaguer "before reading source files," which real usage showed models
+  don't always map to directory listing.
+
+**Honesty note:** this is a best-effort prompt-engineering improvement, not a
+guarantee. No MCP server (this one included) can force a model to call a
+specific tool — the agent still weighs the nudge against its own instincts.
+If you see an agent skip `mind_digest` on an orientation question, that's a
+known, inherent limit of instruction-following, not a wiring bug — verify the
+tool itself works by asking the agent to call it directly.
+
 ## [0.4.3] - 2026-07-03
 
 ### Added

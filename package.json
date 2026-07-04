@@ -1,6 +1,6 @@
 {
   "name": "@nodemint/projectmind",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "mcpName": "io.github.Nodemint-dev/projectmind",
   "publishConfig": {
     "access": "public"
