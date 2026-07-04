@@ -13,21 +13,20 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
+import { committedDigest, embedDigestBlock, RULES_MARKER_BEGIN, RULES_MARKER_END } from "../core/index.js";
 
 // `mcp` is a subcommand of the main bin, so plain npx works (same invocation
 // the official MCP Registry entry uses).
 const MCP_ENTRY = { command: "npx", args: ["-y", "@nodemint/projectmind", "mcp"] };
 
-const RULES_BEGIN = "<!-- projectmind:begin -->";
-const RULES_END = "<!-- projectmind:end -->";
 const RULES_BODY = [
-  RULES_BEGIN,
+  RULES_MARKER_BEGIN,
   "## projectmind",
-  "Before running ls/find/glob/grep or reading files to explain, describe, or orient in this project (e.g. \"what is this project\", \"explain this codebase\", \"how is this structured\"), call `mind_digest` first — it answers most of that in a few hundred tokens.",
+  "The current project map is embedded below (auto-synced on every change — do not hand-edit between the digest markers). Use it instead of ls/find/glob/grep when you need to explain, describe, or orient in this project.",
   "Use `mind_context({ files })` for a task-scoped subgraph, or `mind_query(<id>)` for one module's files/notes.",
   "After a structural change, architectural decision, or newly learned convention, call `mind_update` (only the fields that changed).",
   "Before the session ends (or when context is about to be compacted), call `mind_handoff` with a one-line note on what's in progress and what's next — it leads the next session's digest.",
-  RULES_END,
+  RULES_MARKER_END,
 ].join("\n");
 
 // Each agent: a JSON MCP config location and/or a rules file to append to.
@@ -86,26 +85,36 @@ function mergeJsonConfig(file, key, label = file) {
   return { file: label, status: "written" };
 }
 
-function appendRulesBlock(r, relFile) {
+// Appends the static instructions block if missing, then (re)embeds the
+// current digest between digest markers regardless — so the very first
+// setup run already carries real content, not just an instruction to fetch
+// it, and every later setup run refreshes a possibly-stale embedded digest.
+function appendRulesBlock(r, relFile, digestText) {
   const file = path.join(r, relFile);
-  let content = "";
-  try { content = fs.readFileSync(file, "utf8"); } catch { /* none */ }
-  if (content.includes(RULES_BEGIN)) return { file: relFile, status: "already" };
-  const sep = content && !content.endsWith("\n") ? "\n\n" : content ? "\n" : "";
+  let original = "";
+  try { original = fs.readFileSync(file, "utf8"); } catch { /* none */ }
+  const already = original.includes(RULES_MARKER_BEGIN);
+  let content = original;
+  if (!already) {
+    const sep = original && !original.endsWith("\n") ? "\n\n" : original ? "\n" : "";
+    content = `${original}${sep}${RULES_BODY}\n`;
+  }
+  const updated = embedDigestBlock(content, digestText);
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, `${content}${sep}${RULES_BODY}\n`);
-  return { file: relFile, status: content ? "appended" : "created" };
+  fs.writeFileSync(file, updated);
+  return { file: relFile, status: already ? "already" : (original ? "appended" : "created") };
 }
 
 // agents: array of agent keys, or "all". Returns a per-file result list.
 export function setupAgents(r, agents = "all") {
   const keys = agents === "all" || !agents ? SUPPORTED_AGENTS : [].concat(agents).filter((k) => AGENTS[k]);
+  const digestText = committedDigest(r);
   const results = [];
   for (const key of keys) {
     const a = AGENTS[key];
     if (!a) continue;
     if (a.json) results.push({ agent: key, label: a.label, ...mergeJsonConfig(path.join(r, a.json.file), a.json.key, a.json.file) });
-    if (a.rules) results.push({ agent: key, label: a.label, ...appendRulesBlock(r, a.rules) });
+    if (a.rules) results.push({ agent: key, label: a.label, ...appendRulesBlock(r, a.rules, digestText) });
   }
   return results;
 }

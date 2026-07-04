@@ -6,6 +6,8 @@ import { tmpRoot, cleanup } from "./helpers.js";
 import {
   init, patch, load, detectStack, proposeSeed, seed, drift,
   buildContext, context, hasCodegraph, digest, query,
+  embedDigestBlock, committedDigest, RULES_MARKER_BEGIN, RULES_MARKER_END,
+  DIGEST_BLOCK_BEGIN, DIGEST_BLOCK_END,
 } from "../src/core/index.js";
 import { setupAgents, setupGlobalAgents } from "../src/setup/index.js";
 import { reconcile } from "../src/watch/index.js";
@@ -214,4 +216,109 @@ test("setupGlobalAgents never touches per-project rules files (CLAUDE.md etc.) �
     setupGlobalAgents(["cursor"], { homeDir: home });
     assert.ok(!fs.existsSync(path.join(home, ".cursorrules")));
   } finally { cleanup(home); }
+});
+
+// ---------------------------------------------------------------------------
+// Universal digest embedding — the fix for "the model didn't choose to call
+// mind_digest": rules files (CLAUDE.md, .cursorrules, ...) are loaded into
+// context by every agent unconditionally, so embedding the actual digest
+// content there (kept in sync automatically) works regardless of whether the
+// model decides to call a tool.
+// ---------------------------------------------------------------------------
+
+test("embedDigestBlock never touches a file that hasn't run setup (no static marker)", () => {
+  const content = "# My repo\n\nSome existing notes.\n";
+  assert.equal(embedDigestBlock(content, "# digest text"), content);
+});
+
+test("embedDigestBlock inserts the digest block right after the static instructions end marker", () => {
+  const content = `${RULES_MARKER_BEGIN}\nsome instructions\n${RULES_MARKER_END}\n`;
+  const out = embedDigestBlock(content, "# my digest\nhello");
+  assert.match(out, /some instructions/);
+  assert.match(out, new RegExp(`${RULES_MARKER_END}[\\s\\S]*${DIGEST_BLOCK_BEGIN}[\\s\\S]*# my digest\\nhello[\\s\\S]*${DIGEST_BLOCK_END}`));
+  // static markers untouched, exactly one of each
+  assert.equal((out.match(/projectmind:begin/g) || []).length, 1);
+});
+
+test("embedDigestBlock replaces an existing digest block in place, idempotently, without duplicating or drifting", () => {
+  const content = `${RULES_MARKER_BEGIN}\ninstructions\n${RULES_MARKER_END}\n\n${DIGEST_BLOCK_BEGIN}\nOLD DIGEST\n${DIGEST_BLOCK_END}\n`;
+  const out = embedDigestBlock(content, "NEW DIGEST");
+  assert.doesNotMatch(out, /OLD DIGEST/);
+  assert.match(out, /NEW DIGEST/);
+  assert.equal((out.match(new RegExp(DIGEST_BLOCK_BEGIN, "g")) || []).length, 1);
+
+  // idempotent: embedding the same text twice produces identical output
+  const again = embedDigestBlock(out, "NEW DIGEST");
+  assert.equal(again, out);
+});
+
+test("committedDigest never includes local-overlay content — safe to embed in a committed file", () => {
+  const r = tmpRoot();
+  try {
+    init(r);
+    patch({ node: { id: "shared", summary: "shared node", status: "active" } }, r);
+    patch({ node: { id: "personal", summary: "PERSONAL_SECRET_WIP" }, handoff: "PERSONAL_HANDOFF_NOTE" }, r, { scope: "local" });
+    const cd = committedDigest(r);
+    assert.match(cd, /shared node/);
+    assert.doesNotMatch(cd, /PERSONAL_SECRET_WIP/);
+    assert.doesNotMatch(cd, /PERSONAL_HANDOFF_NOTE/);
+  } finally { cleanup(r); }
+});
+
+test("setupAgents embeds a real digest immediately on first run, not just an instruction to fetch one", () => {
+  const r = tmpRoot();
+  try {
+    scaffoldRepo(r);
+    init(r);
+    patch({ node: { id: "src", summary: "the source tree", status: "active" } }, r);
+    setupAgents(r, "claude");
+    const claudeMd = fs.readFileSync(path.join(r, "CLAUDE.md"), "utf8");
+    assert.match(claudeMd, new RegExp(DIGEST_BLOCK_BEGIN));
+    assert.match(claudeMd, /the source tree/);
+  } finally { cleanup(r); }
+});
+
+test("save() keeps every already-set-up rules file's embedded digest in sync automatically", () => {
+  const r = tmpRoot();
+  try {
+    scaffoldRepo(r);
+    init(r);
+    setupAgents(r, ["claude", "cursor"]);
+    // a structural change via a normal patch — the real path mind_update/CLI/git-hook/watch all use
+    patch({ node: { id: "billing", summary: "handles invoices", status: "active" } }, r);
+
+    const claudeMd = fs.readFileSync(path.join(r, "CLAUDE.md"), "utf8");
+    const cursorrules = fs.readFileSync(path.join(r, ".cursorrules"), "utf8");
+    assert.match(claudeMd, /handles invoices/);
+    assert.match(cursorrules, /handles invoices/);
+
+    // another change — the embedded digest must reflect the LATEST state, not stack up old ones
+    patch({ node: { id: "billing", summary: "handles invoices and refunds" } }, r);
+    const updated = fs.readFileSync(path.join(r, "CLAUDE.md"), "utf8");
+    assert.match(updated, /handles invoices and refunds/);
+    assert.equal((updated.match(new RegExp(DIGEST_BLOCK_BEGIN, "g")) || []).length, 1);
+  } finally { cleanup(r); }
+});
+
+test("save() never touches a rules file for an agent that was never set up", () => {
+  const r = tmpRoot();
+  try {
+    scaffoldRepo(r);
+    init(r);
+    setupAgents(r, "claude"); // only claude, not cursor
+    patch({ node: { id: "auth", summary: "auth stuff", status: "active" } }, r);
+    assert.ok(!fs.existsSync(path.join(r, ".cursorrules")), "save() must not spontaneously create rules files");
+  } finally { cleanup(r); }
+});
+
+test("save() never embeds local-scope (personal) content into a committed rules file", () => {
+  const r = tmpRoot();
+  try {
+    scaffoldRepo(r);
+    init(r);
+    setupAgents(r, "claude");
+    patch({ handoff: "PERSONAL_WIP_LEAK_CHECK" }, r, { scope: "local" });
+    const claudeMd = fs.readFileSync(path.join(r, "CLAUDE.md"), "utf8");
+    assert.doesNotMatch(claudeMd, /PERSONAL_WIP_LEAK_CHECK/);
+  } finally { cleanup(r); }
 });

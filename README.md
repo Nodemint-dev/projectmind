@@ -218,11 +218,28 @@ cheap by default, detail on demand.
 | `mind_handoff(note)` | Leave a "resume here" note that leads the next session's digest. |
 | `mind_stats()` | Map size, digest cost, and your savings ledger. |
 
-## One-command agent wiring
+## One-command agent wiring — and it doesn't depend on the model choosing to read it
 
-`projectmind setup` idempotently writes the MCP config **and** a short workflow
+`projectmind setup` idempotently writes the MCP config **and** a workflow
 rules block for each agent — merging into existing configs, never clobbering
-(an unparseable config is backed up and skipped):
+(an unparseable config is backed up and skipped).
+
+Here's the part that matters: MCP tools are a *nudge* — no server can force a
+model to call one, so an agent can (and sometimes will) skip `mind_digest` on
+a plain "explain this project" question, especially mid-task. But rules files
+(`CLAUDE.md`, `.cursorrules`, `.windsurfrules`, `GEMINI.md`, `AGENTS.md`,
+`.github/copilot-instructions.md`) are loaded into every agent's context
+**unconditionally, with zero model choice involved** — that's the actual
+mechanism, not a coincidence. So `setup` doesn't just write instructions to
+call `mind_digest`; it **embeds the live digest itself** between
+`<!-- projectmind:digest:begin/end -->` markers, and every subsequent
+`mind_update`, CLI edit, git-commit hook run, or `watch` save **re-syncs it
+automatically**. The project map is present in context from message one, on
+every agent, with no tool call required at all — the same reliability
+class as a context-injecting hook, without needing one.
+
+(Only the *repo-committed* map is ever embedded — never your gitignored local
+overlay or handoff notes, so nothing personal leaks into a file you commit.)
 
 | Agent | MCP config | Rules file |
 |-------|-----------|------------|

@@ -272,7 +272,7 @@ function dedupEdges(edges) {
   const seen = new Set();
   const out = [];
   for (const e of edges) {
-    const k = `${e.from} ${e.to} ${e.rel}`;
+    const k = `${e.from} ${e.to} ${e.rel}`;
     if (seen.has(k)) continue;
     seen.add(k);
     out.push(e);
@@ -294,10 +294,71 @@ export function save(map, r = root(), scope = "repo") {
     atomicWrite(localPath(r), serialize(m));
   } else {
     atomicWrite(mapPath(r), serialize(m));
+    const digestText = buildDigest(m, loadConfig(r).digest);
     // digest.md reflects the committed (repo) map so PR diffs stay clean.
-    atomicWrite(digestPath(r), buildDigest(m, loadConfig(r).digest));
+    atomicWrite(digestPath(r), digestText);
+    // Keep every already-set-up agent's rules file (CLAUDE.md, etc.) carrying
+    // the current digest inline. This is the universal, cross-agent fix for
+    // "the model didn't choose to call mind_digest": rules files are loaded
+    // into context by every agent unconditionally, with zero model choice
+    // involved, so embedding the actual content there (not just an
+    // instruction to fetch it) guarantees fresh orientation context without
+    // depending on the model deciding to call a tool.
+    syncRuleDigests(r, digestText);
   }
   return m;
+}
+
+// ---------------------------------------------------------------------------
+// Rules-file digest embedding. Only files that already opted in via
+// `projectmind setup` (i.e. already contain RULES_MARKER_BEGIN) are ever
+// touched — this never spontaneously creates a rules file for an agent the
+// user hasn't set up, and never embeds anything before the user has run
+// setup once.
+// ---------------------------------------------------------------------------
+export const RULES_MARKER_BEGIN = "<!-- projectmind:begin -->";
+export const RULES_MARKER_END = "<!-- projectmind:end -->";
+export const DIGEST_BLOCK_BEGIN = "<!-- projectmind:digest:begin -->";
+export const DIGEST_BLOCK_END = "<!-- projectmind:digest:end -->";
+export const RULES_FILES = [
+  "CLAUDE.md", ".cursorrules", ".windsurfrules", "GEMINI.md", "AGENTS.md",
+  path.join(".github", "copilot-instructions.md"),
+];
+
+// Pure: given a rules file's current content and the digest text to embed,
+// return the updated content. No-op if the static instructions block isn't
+// present (agent never set up) or malformed (defensive; should not happen).
+export function embedDigestBlock(content, digestText) {
+  if (!content.includes(RULES_MARKER_BEGIN)) return content;
+  const block = `${DIGEST_BLOCK_BEGIN}\n${digestText.trim()}\n${DIGEST_BLOCK_END}`;
+  if (content.includes(DIGEST_BLOCK_BEGIN) && content.includes(DIGEST_BLOCK_END)) {
+    const start = content.indexOf(DIGEST_BLOCK_BEGIN);
+    const end = content.indexOf(DIGEST_BLOCK_END) + DIGEST_BLOCK_END.length;
+    return content.slice(0, start) + block + content.slice(end);
+  }
+  const markerEndIdx = content.indexOf(RULES_MARKER_END);
+  if (markerEndIdx === -1) return content;
+  const insertAt = markerEndIdx + RULES_MARKER_END.length;
+  return content.slice(0, insertAt) + `\n\n${block}` + content.slice(insertAt);
+}
+
+// The digest text safe to embed in COMMITTED rules files — repo scope only,
+// never merged with the local overlay (which may carry personal handoff
+// notes). Same content as digest.md.
+export function committedDigest(r = root()) {
+  return buildDigest(loadScope("repo", r), loadConfig(r).digest);
+}
+
+function syncRuleDigests(r, digestText) {
+  for (const relFile of RULES_FILES) {
+    const file = path.join(r, relFile);
+    let content;
+    try { content = fs.readFileSync(file, "utf8"); } catch { continue; }
+    const updated = embedDigestBlock(content, digestText);
+    if (updated !== content) {
+      try { fs.writeFileSync(file, updated); } catch { /* best effort */ }
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------

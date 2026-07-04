@@ -3,6 +3,42 @@
 All notable changes to this project are documented here. This project adheres
 to [Semantic Versioning](https://semver.org/).
 
+## [0.5.0] - 2026-07-04
+
+### Added
+- **Universal digest embedding — the real fix for "the agent didn't call
+  mind_digest."** `projectmind setup` now embeds the live digest content
+  directly into each agent's rules file (`CLAUDE.md`, `.cursorrules`,
+  `.windsurfrules`, `GEMINI.md`, `AGENTS.md`,
+  `.github/copilot-instructions.md`), between
+  `<!-- projectmind:digest:begin/end -->` markers, instead of only telling the
+  agent to call a tool. Rules files are loaded into every agent's context
+  unconditionally — no model choice involved — so this works identically
+  across every supported agent, not just Claude Code.
+- `save()` now keeps every already-set-up rules file's embedded digest in
+  sync automatically on every map change (`mind_update`, the CLI, the git
+  post-commit hook, `projectmind watch` — anything that calls `save()`).
+- New exports: `embedDigestBlock`, `committedDigest`, `RULES_FILES`,
+  `RULES_MARKER_BEGIN/END`, `DIGEST_BLOCK_BEGIN/END`.
+
+### Fixed
+- A stray pair of literal null bytes in `dedupEdges`'s dedup key (an old typo:
+  `\0` was meant as a delimiter but had been written as a raw byte) made
+  `src/core/index.js` register as a binary file to some tools (e.g. `grep`
+  without `-a`). Functionally harmless — replaced with a plain space.
+
+### Security / privacy
+- Only the **repo-committed** map is ever embedded in rules files —
+  `committedDigest()` never includes the gitignored local overlay, so
+  personal handoff notes or local-only nodes can never leak into a file you
+  commit. Covered by a dedicated regression test.
+
+**Why this matters:** MCP tool descriptions and rules-file instructions are
+nudges — no server can force a model to call a specific tool, and real
+dogfooding showed a connected server + explicit instructions still wasn't
+enough on plain orientation questions. Embedding the actual content sidesteps
+that entirely: there's nothing left for the model to choose *not* to do.
+
 ## [0.4.4] - 2026-07-04
 
 ### Changed
