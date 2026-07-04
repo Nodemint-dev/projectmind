@@ -1,10 +1,17 @@
 #!/usr/bin/env node
 // Human-facing CLI. A thin adapter: argv -> core function -> stdout.
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import * as core from "../core/index.js";
 import { installHook } from "../hooks/install.js";
 import { setupAgents, setupGlobalAgents, SUPPORTED_AGENTS, SUPPORTED_GLOBAL_AGENTS } from "../setup/index.js";
 import { watch } from "../watch/index.js";
 import { savingsSummary, resolvePrice } from "../core/ledger.js";
+
+const PKG_VERSION = JSON.parse(
+  fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "package.json"), "utf8")
+).version;
 
 const HELP = `projectmind — persistent, compact project memory for AI coding agents
 
@@ -45,6 +52,7 @@ Options:
   --stale <days>                (doctor) staleness threshold in days (default 90)
   --clear                       (handoff) clear the current handoff note
   -h, --help                    Show this help
+  -v, --version                 Print the installed version
 `;
 
 function parseArgs(argv) {
@@ -64,6 +72,7 @@ function parseArgs(argv) {
     else if (a === "--stale") opts.stale = Number(argv[++i]);
     else if (a === "--clear") opts.clear = true;
     else if (a === "-h" || a === "--help") opts.help = true;
+    else if (a === "-v" || a === "--version") opts.version = true;
     else rest.push(a);
   }
   return { opts, rest };
@@ -77,6 +86,7 @@ function out(obj) {
 async function main() {
   const { opts, rest } = parseArgs(process.argv.slice(2));
   const cmd = rest.shift();
+  if (opts.version) { out(`projectmind v${PKG_VERSION}`); return; }
   if (!cmd || opts.help) { out(HELP); return; }
 
   // `projectmind mcp` starts the stdio MCP server — the entrypoint MCP

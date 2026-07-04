@@ -3,6 +3,14 @@
 All notable changes to this project are documented here. This project adheres
 to [Semantic Versioning](https://semver.org/).
 
+## [0.5.3] - 2026-07-04
+
+### Added
+- `projectmind --version` / `-v` — surfaced by the user trying it and hitting
+  "Unknown command," since it genuinely didn't exist before. Reads the
+  installed version from `package.json` at runtime rather than a hardcoded
+  string, so it can never drift from the actual release.
+
 ## [0.5.2] - 2026-07-04
 
 ### Fixed
