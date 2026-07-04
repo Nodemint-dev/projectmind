@@ -3,6 +3,31 @@
 All notable changes to this project are documented here. This project adheres
 to [Semantic Versioning](https://semver.org/).
 
+## [0.5.2] - 2026-07-04
+
+### Fixed
+- **Auto-seed no longer collapses an entire `src/`-layout project into one
+  undifferentiated node.** `proposeSeed` grouped strictly by the first path
+  segment, so any project nesting everything under `src/` (the near-universal
+  convention for modern JS/TS, and common in Rust/Python too) — `src/app/**`,
+  `src/lib/**`, `src/components/**`, all of it — seeded as a single "src"
+  node covering every file, with a placeholder summary. Real dogfooding on a
+  Next.js app surfaced this directly: a 112-file project seeded as exactly
+  one node, which meant the embedded digest (v0.5.0) had almost nothing
+  specific to say about any given feature.
+- Seeding now descends through a bare `src/` wrapper once, grouping by what's
+  actually underneath (`app`, `lib`, `components`, ...) instead. Loose files
+  sitting directly in `src/` (no subdirectory) still group under a plain
+  `src` node, unchanged.
+
+**If you already ran `init --seed` on a `src/`-layout project before this
+fix**, your map is stuck with the old one-node shape — `projectmind seed`
+never overwrites an existing node, so simply re-running it won't fix a
+node that already exists. Either ask your agent to call `mind_update` with
+`removeNode: "src"` and then run `projectmind seed` again, or edit
+`.projectmind/map.json` directly: delete the stale `"src"` entry from
+`nodes`, save, then run `projectmind seed`.
+
 ## [0.5.1] - 2026-07-04
 
 ### Added

@@ -737,6 +737,27 @@ const SOURCE_DIR_HINTS = new Set([
   "server", "services", "routes", "controllers", "models", "views", "modules", "core",
 ]);
 
+// Directories that are near-universally a wrapper, never a feature in their
+// own right (the "src layout" convention, used by JS/TS, Rust, Python, and
+// others). Grouping by the FIRST path segment alone collapses every feature
+// of a project like `src/app/**`, `src/lib/**`, `src/components/**` into one
+// undifferentiated "src" blob covering the whole codebase — descend through
+// it once so seeding groups by what's actually underneath instead.
+const PASSTHROUGH_DIRS = new Set(["src"]);
+
+// Given a repo-relative code file path, return the directory key to group it
+// under for seeding, and the glob prefix that captures that group. Descends
+// one level through a passthrough dir when there's a real subdirectory below
+// it; falls back to the passthrough dir itself for files sitting loose
+// directly inside it (e.g. "src/index.js").
+function seedGroupFor(relPath) {
+  const parts = relPath.split("/");
+  if (parts.length > 2 && PASSTHROUGH_DIRS.has(parts[0])) {
+    return { key: parts[1], prefix: `${parts[0]}/${parts[1]}` };
+  }
+  return { key: parts[0], prefix: parts[0] };
+}
+
 export function proposeSeed(r = root()) {
   const files = walkFiles(r);
   const proposal = { project: {}, stack: detectStack(r), nodes: {} };
@@ -759,20 +780,22 @@ export function proposeSeed(r = root()) {
   proposal.project.name = name;
   if (description) proposal.project.description = description;
 
-  // group code files by their top-level directory
+  // group code files by directory, descending through a bare "src/" wrapper
+  // so real feature areas (app, lib, components, ...) get their own node
+  // instead of collapsing into one "src" blob.
   const byTop = {};
   for (const f of files) {
     if (!CODE_EXT.test(f)) continue;
-    const top = f.split("/")[0];
     if (f.indexOf("/") === -1) continue; // skip loose top-level files
-    (byTop[top] ||= []).push(f);
+    const { key, prefix } = seedGroupFor(f);
+    (byTop[key] ||= { list: [], prefix }).list.push(f);
   }
-  for (const [top, list] of Object.entries(byTop)) {
-    if (!SOURCE_DIR_HINTS.has(top) && list.length < 2) continue; // ignore incidental dirs
-    proposal.nodes[top] = {
+  for (const [key, { list, prefix }] of Object.entries(byTop)) {
+    if (!SOURCE_DIR_HINTS.has(key) && list.length < 2) continue; // ignore incidental dirs
+    proposal.nodes[key] = {
       type: "module",
-      summary: `${top}/ — ${list.length} source file${list.length === 1 ? "" : "s"} (describe me)`,
-      files: [`${top}/**`],
+      summary: `${prefix}/ — ${list.length} source file${list.length === 1 ? "" : "s"} (describe me)`,
+      files: [`${prefix}/**`],
       status: "stable",
     };
   }

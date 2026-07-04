@@ -339,3 +339,49 @@ test("embeddedDigestFiles reports which rules files carry an embedded digest, an
     assert.deepEqual(stats(r).embeddedDigestIn.sort(), after.sort());
   } finally { cleanup(r); }
 });
+
+test("proposeSeed descends through a bare src/ wrapper instead of collapsing an entire Next.js-style app into one blob node", () => {
+  const r = tmpRoot();
+  try {
+    fs.writeFileSync(path.join(r, "package.json"), JSON.stringify({ name: "volte", description: "ecommerce storefront" }));
+    // mirrors a real src-layout Next.js app: everything nested under src/,
+    // which used to collapse into a single undifferentiated "src" node
+    const files = [
+      "src/app/(storefront)/checkout/page.tsx",
+      "src/app/(storefront)/cart/page.tsx",
+      "src/app/admin/products/page.tsx",
+      "src/app/admin/orders/page.tsx",
+      "src/lib/courier/manual.ts",
+      "src/lib/courier/adapter.ts",
+      "src/lib/email/console-stub.ts",
+      "src/components/Button.tsx",
+      "src/components/ProductCard.tsx",
+    ];
+    for (const f of files) {
+      fs.mkdirSync(path.join(r, path.dirname(f)), { recursive: true });
+      fs.writeFileSync(path.join(r, f), "export const x = 1;\n");
+    }
+    const p = proposeSeed(r);
+    assert.ok(!p.nodes.src, "must not collapse everything into one src blob");
+    assert.ok(p.nodes.app, "expected a node for src/app");
+    assert.ok(p.nodes.lib, "expected a node for src/lib");
+    assert.ok(p.nodes.components, "expected a node for src/components");
+    assert.deepEqual(p.nodes.app.files, ["src/app/**"]);
+    assert.deepEqual(p.nodes.lib.files, ["src/lib/**"]);
+    // 4 files under app/, 3 under lib/, 2 under components/
+    assert.match(p.nodes.app.summary, /4 source files/);
+    assert.match(p.nodes.lib.summary, /3 source files/);
+  } finally { cleanup(r); }
+});
+
+test("proposeSeed still groups loose files sitting directly in src/ under a plain src node", () => {
+  const r = tmpRoot();
+  try {
+    fs.mkdirSync(path.join(r, "src"), { recursive: true });
+    fs.writeFileSync(path.join(r, "src", "index.js"), "export const a = 1;\n");
+    fs.writeFileSync(path.join(r, "src", "utils.js"), "export const b = 2;\n");
+    const p = proposeSeed(r);
+    assert.ok(p.nodes.src);
+    assert.deepEqual(p.nodes.src.files, ["src/**"]);
+  } finally { cleanup(r); }
+});
