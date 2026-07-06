@@ -3,6 +3,41 @@
 All notable changes to this project are documented here. This project adheres
 to [Semantic Versioning](https://semver.org/).
 
+## [0.6.0] - 2026-07-06
+
+The "works out of the box" release — setup collapsed to one command, and the
+map goes local-first by default.
+
+### Changed (behavior)
+- **`projectmind init` now does everything in one command**: scaffold, seed
+  from repo layout, detect which AI agents are installed on this machine
+  (via their config dirs) and wire only those, embed the live digest in their
+  rules files, gitignore the map, and install the git freshness hook — then
+  print the one manual step left (restart your agent / reload the VS Code
+  window) instead of assuming users know. `init --bare` restores the old
+  scaffold-only behavior; `--seed` is accepted as a no-op for back-compat.
+- **Local-first by default**: `init` now gitignores the whole `.projectmind/`
+  directory — the raw map, personal overlay, and ledger never leave your
+  machine, and there's nothing to push or review. The shareable knowledge
+  still travels via the digest embedded in committed rules files. Teams that
+  want the full map in git delete one `.gitignore` line; `init` detects and
+  respects an existing sharing choice (including the pre-0.6 per-file ignore
+  scheme) and never overrides it.
+
+### Added
+- `detectInstalledAgents()` — filesystem-only detection of Claude Code,
+  Cursor, Windsurf, and Gemini CLI; AGENTS.md always included as the
+  cross-agent standard. A Claude-only user no longer gets six rules files.
+- Explicit reload/restart guidance in `init` and `setup` output, including
+  the honest boundary: an already-open chat session keeps its old context
+  (an MCP-client limitation no server can bypass); everything is automatic
+  from the next session on.
+
+### Docs
+- README rewritten around the one-command flow, the local-first/team-mode
+  choice, and a new Trust-FAQ entry stating exactly what does and doesn't
+  work in an already-open session. Demo GIF regenerated for the new flow.
+
 ## [0.5.3] - 2026-07-04
 
 ### Added

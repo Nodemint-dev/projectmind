@@ -5,14 +5,14 @@ small digest instead of re-scanning the codebase every session — and a local
 ledger shows you exactly how many tokens (and dollars) that saved.
 
 [![CI](https://github.com/Nodemint-dev/projectmind/actions/workflows/ci.yml/badge.svg)](https://github.com/Nodemint-dev/projectmind/actions/workflows/ci.yml)
-![tests](https://img.shields.io/badge/tests-63%20passing-brightgreen)
+![tests](https://img.shields.io/badge/tests-85%20passing-brightgreen)
 ![platforms](https://img.shields.io/badge/platforms-linux%20%7C%20macos%20%7C%20windows-blue)
 ![node](https://img.shields.io/badge/node-%E2%89%A518-blue)
 ![runtime deps](https://img.shields.io/badge/runtime%20deps-2-blue)
 ![network calls](https://img.shields.io/badge/network%20calls-0%20(enforced%20by%20CI)-success)
 ![license](https://img.shields.io/badge/license-MIT-lightgrey)
 
-![Demo: init --seed scaffolds the map, setup wires every agent, the digest opens with the session handoff, and projectmind savings shows ~20.5k tokens saved](docs/assets/demo.gif)
+![Demo: one projectmind init command scaffolds, seeds, wires every installed agent, gitignores the map, and installs the git hook; the digest opens with the session handoff and projectmind savings shows ~20.5k tokens saved](docs/assets/demo.gif)
 
 ![Benchmark: reading the codebase ~1,953 tokens vs projectmind digest ~412 tokens, −78.9%](docs/assets/benchmark.svg)
 
@@ -21,7 +21,7 @@ project, so it re-reads files, re-derives your architecture, or asks you to
 re-explain decisions you made months ago. You pay for that in tokens, time, and
 wrong guesses — every single session, on every machine, for every teammate.
 
-`projectmind` fixes this with a **structured, git-committed project map**
+`projectmind` fixes this with a **structured, persistent project map**
 (`.projectmind/map.json`): your modules, their dependencies, your architectural
 decisions, your conventions, your domain glossary. The agent reads a ~400-token
 digest first, drills into single nodes only when needed, and writes back what it
@@ -31,18 +31,34 @@ starts already knowing the project.
 The digest scales with your project's *conceptual* size (modules, decisions),
 not its *byte* size — so the savings grow with the repo.
 
-## Quick start
+## Quick start — one command
 
 ```bash
-npm install -g @nodemint/projectmind        # installs the `projectmind` CLI
+npm install -g @nodemint/projectmind
 cd your-repo
-projectmind init --seed           # scaffold + propose a starter map from your repo layout
-projectmind setup                 # wire the MCP server + rules into every agent you use
-projectmind install-hook          # optional: auto-update module freshness on commit
+projectmind init
 ```
 
-That's it. Your agent now calls `mind_digest` at the start of a task instead of
-scanning files.
+That single `init` does everything: scaffolds the map, **seeds it from your
+repo layout**, detects which AI agents are installed on your machine and
+**wires each one** (MCP server + a rules file carrying the live map), adds
+`.projectmind/` to your `.gitignore` (the map stays local — nothing to push),
+and installs the git hook that keeps the map fresh on every commit.
+
+**Then the one step no tool can do for you: restart your agent** (or start a
+new chat session). AI agents load their config and rules files at session
+start — a chat that was already open keeps its old context, and every session
+after that has the map automatically. Using the VS Code savings extension?
+`Cmd+Shift+P` → *"Developer: Reload Window"* once.
+
+Want it available in **every future project without even running `init`**?
+
+```bash
+projectmind setup --global        # registers the MCP server once, user-wide
+```
+
+(`projectmind init --bare` scaffolds only, and `projectmind setup` re-wires
+agents on demand, if you prefer the pieces separately.)
 
 ## See what it saves you — measured, not promised
 
@@ -121,7 +137,7 @@ with `mind_handoff({clear: true})` when done. Humans can use it too:
 
 ## Works everywhere your team works
 
-No language assumptions, no platform assumptions: the full test suite (63
+No language assumptions, no platform assumptions: the full test suite (85
 tests, including the git-hook end-to-end and offline-guarantee tests) runs in
 CI on **Linux, macOS, and Windows × Node 18/20/22**. Paths, globs, atomic
 renames, and the installed git hook are exercised on all three. The map format
@@ -157,9 +173,9 @@ flowchart LR
         CORE["core\n(atomic writes, schema-validated)"]
         HOOK["git post-commit hook\n+ watch mode"]
     end
-    subgraph repo["Your repo (git-committed)"]
+    subgraph repo["Your repo"]
         MAP[".projectmind/map.json\nnodes · edges · decisions\nconventions · glossary"]
-        DIG[".projectmind/digest.md\nreviewable in PRs"]
+        DIG[".projectmind/digest.md\n+ embedded in CLAUDE.md etc."]
     end
     LEDGER[".projectmind/ledger.json\nlocal savings ledger (gitignored)"]
 
@@ -396,9 +412,18 @@ Options: --local (per-developer overlay), --root <dir>
 }
 ```
 
-Two scopes: the committed `map.json` (shared with your team) and an optional
-gitignored `map.local.json` overlay for personal context ("mid-refactor on X").
-`digest.md` is committed too, so map changes show up as **readable diffs in PRs**.
+**Local-first by default:** `init` gitignores the whole `.projectmind/`
+directory — the raw map, your personal overlay ("mid-refactor on X",
+handoffs), and the savings ledger all stay on your machine. Nothing to push,
+nothing to review. The *shareable* knowledge still travels with the repo,
+because the digest is embedded in your committed rules files (`CLAUDE.md`
+etc.) and auto-synced on every change.
+
+**Team mode (opt-in):** want the full raw map in git so teammates and CI share
+one source of truth? Delete the `.projectmind/` line from `.gitignore` —
+that's the whole switch. Every write is deterministic (sorted keys, atomic),
+so `map.json` and `digest.md` produce clean, reviewable PR diffs. `init` never
+overrides this choice once you've made it.
 
 ## Trust FAQ
 
@@ -408,17 +433,30 @@ any network API (`http`, `net`, `fetch`, sockets, …) appears. Two runtime
 dependencies (`@modelcontextprotocol/sdk`, `picomatch`), no telemetry, no LLM
 calls, no accounts.
 
-**What gets committed?** `map.json`, `digest.md`, `config.json`. Your personal
-overlay (`map.local.json`) and your savings ledger (`ledger.json`) are
-gitignored automatically.
+**What gets committed?** By default, nothing under `.projectmind/` — the map is
+local-first and gitignored at `init`. What *is* committed: the digest embedded
+in your rules files (`CLAUDE.md`, `.cursorrules`, …), which is exactly the
+part meant to be shared — and it never includes your personal overlay or
+handoff notes (regression-tested). Teams can opt into committing the full map
+by removing one `.gitignore` line.
 
 **Are the savings numbers real?** They're honest estimates, clearly labelled,
 with the methodology printed next to every number and a reproducible benchmark
 in the repo. We'd rather under-claim than exaggerate.
 
-**Can the map rot?** The git hook and watch mode keep file↔module freshness
-current for free; `doctor` flags dangling and stale nodes; `validate` checks
-integrity. And because the digest is committed, drift is visible in code review.
+**Does it work in a chat session that's already open?** Partially, and we'd
+rather tell you exactly where the line is: every MCP client loads servers and
+rules files at session start, so a conversation that was open before `init`
+ran keeps its old context — no tool (ours or anyone's) can inject into it.
+From the very next session on, everything is automatic. If the MCP server was
+already registered globally (`setup --global`), the `mind_*` tools work even
+mid-session in a brand-new project — only the embedded rules-file digest
+waits for the next session.
+
+**Can the map rot?** The git hook (installed by `init`) and watch mode keep
+file↔module freshness current for free; `doctor` flags dangling and stale
+nodes; `validate` checks integrity; and the embedded digest re-syncs on every
+map write, so what agents see never lags what's recorded.
 
 **Does it lock me into one AI tool?** No. Any MCP-capable agent can use it, the
 rules files cover the rest, and the map itself is plain JSON any tool can read.
@@ -427,7 +465,7 @@ rules files cover the rest, and the map itself is plain JSON any tool can read.
 
 ```bash
 npm install
-npm test              # 63 tests: schema, atomicity, corruption self-heal, scopes,
+npm test              # 85 tests: schema, atomicity, corruption self-heal, scopes,
                       # globs, MCP round-trip, ledger, handoff, offline guarantee
 npm run benchmark     # prints the estimated savings number
 ```

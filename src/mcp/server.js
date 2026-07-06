@@ -179,7 +179,7 @@ function handleTool(name, args) {
 
 async function main() {
   const server = new Server(
-    { name: "projectmind", version: "0.5.3" },
+    { name: "projectmind", version: "0.6.0" },
     { capabilities: { tools: {} } }
   );
 

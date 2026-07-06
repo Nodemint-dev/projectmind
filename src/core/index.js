@@ -398,16 +398,25 @@ export function init(r = root(), { gitignoreLocal = true } = {}) {
 
 export function ensureLocalGitignored(r = root()) {
   const gi = path.join(r, ".gitignore");
-  // Per-developer files: the local overlay and the savings ledger. Both are
-  // private to the machine and must never be committed.
-  const lines = [`${DIR}/${LOCAL}`, `${DIR}/ledger.json`];
+  // Local-first by default: the whole .projectmind/ directory stays on the
+  // developer's machine — nothing to push, nothing to review, works out of
+  // the box. The shareable knowledge still travels with the repo via the
+  // digest embedded in committed rules files (CLAUDE.md etc.). Teams that
+  // want the full raw map in git can simply delete this line from
+  // .gitignore — every write is deterministic and diff-friendly by design.
+  const line = `${DIR}/`;
   let content = "";
   try { content = fs.readFileSync(gi, "utf8"); } catch { /* none yet */ }
   const present = new Set(content.split(/\r?\n/).map((l) => l.trim()));
-  const missing = lines.filter((l) => !present.has(l));
-  if (!missing.length) return false;
+  // Respect a team that already shares the map: if any .projectmind path is
+  // deliberately committed (line absent but map tracked), we still only
+  // APPEND to .gitignore on first init — if the user previously removed the
+  // ignore line to share, `present` won't have it but the old per-file lines
+  // might; never fight the user's explicit choice, so skip when either the
+  // dir line or the legacy overlay line is already there.
+  if (present.has(line) || present.has(`${DIR}/${LOCAL}`)) return false;
   const prefix = content && !content.endsWith("\n") ? "\n" : "";
-  fs.appendFileSync(gi, `${prefix}${missing.join("\n")}\n`);
+  fs.appendFileSync(gi, `${prefix}${line}\n`);
   return true;
 }
 

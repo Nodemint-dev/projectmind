@@ -12,7 +12,7 @@ catch the long tail).
 
 The old README-list-PR process is gone; the official path is now the MCP
 Registry, published via CLI. Prereqs are already in the repo (`server.json`,
-`mcpName` in package.json) — after `npm publish` of v0.4.1, run:
+`mcpName` in package.json) — after each `npm publish`, run:
 
 ```bash
 brew install mcp-publisher
@@ -24,7 +24,7 @@ curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=projectmind"
 ```
 
 Note: the registry verifies ownership by checking that the *published* npm
-package's `mcpName` matches `server.json`'s `name` — so v0.4.1 must be on npm
+package's `mcpName` matches `server.json`'s `name` — so the new version must be on npm
 before `mcp-publisher publish` will succeed.
 
 ### mcp.so
@@ -57,11 +57,13 @@ re-derives your architecture, or asks you to re-explain decisions — and you pa
 for that in tokens every single day.
 
 projectmind is an MCP server + CLI that keeps a compact, structured project map
-in your repo (modules, dependencies, decisions, conventions, glossary). The
-agent reads one ~400-token digest at session start instead of scanning files,
-drills into single modules on demand, and writes back what it learns. The map
-is git-committed, so it's shared across your team and across tools (Claude
-Code, Cursor, Windsurf, Gemini CLI, Copilot).
+of your repo (modules, dependencies, decisions, conventions, glossary). The
+live digest is embedded directly into your agents' rules files (CLAUDE.md,
+.cursorrules, ...) and auto-synced on every change — so the agent has it in
+context from message one, with zero tool calls. It drills into single modules
+on demand and writes back what it learns. Local-first by default (the map is
+gitignored); works across tools (Claude Code, Cursor, Windsurf, Gemini CLI,
+Copilot).
 
 Three things I tried to do differently:
 
@@ -85,8 +87,9 @@ capture structure well; projectmind captures the intent layer they can't (why
 JWT over sessions, "money is integer cents"), and it points agents at codegraph
 for symbol-level detail when both are installed.
 
-Install: `npm i -g @nodemint/projectmind` then `projectmind init --seed &&
-projectmind setup` in your repo.
+Install: `npm i -g @nodemint/projectmind` then `projectmind init` in your repo
+— one command scaffolds, seeds from your layout, wires your installed agents,
+gitignores the map, and installs the freshness hook.
 
 Repo: https://github.com/Nodemint-dev/projectmind — would love feedback,
 especially on the digest format and the savings methodology.
@@ -121,8 +124,8 @@ The parts I haven't seen elsewhere:
 - **CI-enforced offline.** A test fails the build if any network API shows up
   in src/. No telemetry, no LLM calls, 2 dependencies.
 
-`projectmind setup` wires it into Claude Code (and Cursor/Windsurf/Gemini/
-Copilot) in one command. MIT, 63 tests, Linux/macOS/Windows.
+`projectmind init` wires everything — Claude Code, Cursor, Windsurf, Gemini,
+Copilot — in one command. MIT, 85 tests, Linux/macOS/Windows.
 
 https://github.com/Nodemint-dev/projectmind
 
@@ -150,10 +153,10 @@ Tomorrow, on another machine, in a different AI tool. It just resumes.
 
 5/ Fully offline, enforced by CI (the build fails if a network API appears in
 src). Two dependencies. MIT. Works with Claude Code, Cursor, Windsurf, Gemini,
-Copilot — one `projectmind setup` command wires them all.
+Copilot — one `projectmind init` command wires them all.
 
 6/ npm i -g @nodemint/projectmind
-   projectmind init --seed && projectmind setup
+   projectmind init
    → https://github.com/Nodemint-dev/projectmind
 
 ---

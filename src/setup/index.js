@@ -120,6 +120,24 @@ export function setupAgents(r, agents = "all") {
 }
 
 // ---------------------------------------------------------------------------
+// Agent auto-detection — which agents does this machine actually have?
+// Used by one-command `init` so a Claude-only user doesn't get six rules
+// files of clutter. Detection is filesystem-only (config dirs each agent
+// creates on first run), deterministic, and overridable for tests.
+// "codex" (AGENTS.md) is always included: it's the emerging cross-agent
+// standard and costs one small file.
+// ---------------------------------------------------------------------------
+export function detectInstalledAgents({ homeDir = os.homedir() } = {}) {
+  const has = (...segs) => fs.existsSync(path.join(homeDir, ...segs));
+  const found = ["codex"];
+  if (has(".claude.json") || has(".claude")) found.push("claude");
+  if (has(".cursor")) found.push("cursor");
+  if (has(".codeium", "windsurf")) found.push("windsurf");
+  if (has(".gemini")) found.push("gemini");
+  return found;
+}
+
+// ---------------------------------------------------------------------------
 // Global (user) scope — register once, available in every future project
 // without a per-project .mcp.json. Only the MCP server entry is global; rules
 // files (CLAUDE.md, AGENTS.md, ...) are inherently per-repo and untouched.

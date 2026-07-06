@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import * as core from "../core/index.js";
 import { installHook } from "../hooks/install.js";
-import { setupAgents, setupGlobalAgents, SUPPORTED_AGENTS, SUPPORTED_GLOBAL_AGENTS } from "../setup/index.js";
+import { setupAgents, setupGlobalAgents, detectInstalledAgents, SUPPORTED_AGENTS, SUPPORTED_GLOBAL_AGENTS } from "../setup/index.js";
 import { watch } from "../watch/index.js";
 import { savingsSummary, resolvePrice } from "../core/ledger.js";
 
@@ -18,7 +18,8 @@ const HELP = `projectmind — persistent, compact project memory for AI coding a
 Usage: projectmind <command> [args]
 
 Commands:
-  init [--seed]                 Scaffold .projectmind/; --seed proposes a starter map from repo layout
+  init                          ONE command: scaffold + seed a starter map + wire your installed
+                                agents + gitignore + git hook. (--bare: scaffold only)
   seed                          Propose a starter map from repo layout (adds missing nodes only)
   setup [--agent <name>]        Wire the MCP server + rules into agents (${SUPPORTED_AGENTS.join(", ")}, or all)
   setup --global [--agent <name>]  Register the MCP server once, for every future project (${SUPPORTED_GLOBAL_AGENTS.join(", ")})
@@ -42,7 +43,7 @@ Commands:
 Options:
   --local                       Write to the per-developer overlay (map.local.json)
   --root <dir>                  Operate on a specific project root
-  --seed                        (init) seed a starter map after scaffolding
+  --bare                        (init) scaffold only — skip seeding, agent wiring, and the git hook
   --agent <name>                (setup) target one agent; default all
   --global                      (setup) register once for every future project, instead of just this repo
   --files <a,b,c>               (context) comma-separated files you're working on
@@ -61,7 +62,8 @@ function parseArgs(argv) {
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--local") opts.local = true;
-    else if (a === "--seed") opts.seed = true;
+    else if (a === "--seed") opts.seed = true; // legacy no-op: init seeds by default now
+    else if (a === "--bare") opts.bare = true;
     else if (a === "--root") opts.root = argv[++i];
     else if (a === "--agent") opts.agent = argv[++i];
     else if (a === "--global") opts.global = true;
@@ -103,13 +105,36 @@ async function main() {
 
   switch (cmd) {
     case "init": {
+      // One command, everything wired — the codegraph-style out-of-the-box
+      // experience. `--bare` restores the old scaffold-only behavior.
       core.init(r);
-      out(`Initialized .projectmind/ at ${r}`);
-      if (opts.seed) {
+      out(`✓ Initialized .projectmind/ at ${r} (gitignored — the map stays local)`);
+      if (!opts.bare) {
         const res = core.seed(r);
-        out(`Seeded ${res.added.length} node(s) from repo layout: ${res.added.join(", ") || "(none)"}`);
+        out(`✓ Seeded ${res.added.length} node(s) from repo layout: ${res.added.join(", ") || "(map already covers the source dirs)"}`);
+
+        const detected = detectInstalledAgents();
+        const results = setupAgents(r, detected);
+        const rulesFiles = results.filter((x) => !x.file.endsWith(".json")).map((x) => x.file);
+        out(`✓ Wired agents detected on this machine (${detected.join(", ")}): ${[...new Set(rulesFiles)].join(", ")}`);
+        out(`  The live project map is embedded in those files — agents see it with zero tool calls.`);
+
+        try {
+          const hook = installHook(r);
+          out(hook.alreadyInstalled ? `✓ Git hook already installed` : `✓ Git post-commit hook installed (keeps the map fresh automatically)`);
+        } catch {
+          out(`- Skipped git hook (not a git repository yet — run \`projectmind install-hook\` after \`git init\`)`);
+        }
+
+        out(``);
+        out(`One-time step left — reload your tools so they pick this up:`);
+        out(`  • Restart your AI agent (Claude Code, Cursor, ...) or start a new chat session.`);
+        out(`    An already-open session keeps its old context; the map loads from the next session on.`);
+        out(`  • Using the VS Code savings extension? Cmd+Shift+P → "Developer: Reload Window".`);
+        out(``);
+        out(`Optional: \`projectmind setup --global\` registers the MCP server once for ALL projects,`);
+        out(`and \`projectmind setup --agent <name>\` wires an agent this machine-scan missed.`);
       }
-      out(core.digest(r));
       break;
     }
     case "seed": {
@@ -133,7 +158,9 @@ async function main() {
       const results = setupAgents(r, agents);
       out(`Wired projectmind into agents at ${r}:`);
       for (const x of results) out(`  ${x.status.padEnd(18)} ${x.file}`);
-      out("\nRestart your agent so it picks up the new MCP server.");
+      out("\nOne-time step: restart your AI agent (or start a new chat session) so it picks this up.");
+      out("An already-open session keeps its old context — the map loads from the next session on.");
+      out("VS Code savings extension users: Cmd+Shift+P → \"Developer: Reload Window\".");
       break;
     }
     case "digest":

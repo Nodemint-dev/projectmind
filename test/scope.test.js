@@ -46,11 +46,23 @@ test("committed digest.md reflects repo only, not local overlay", () => {
   } finally { cleanup(r); }
 });
 
-test("init adds local overlay to .gitignore", () => {
+test("init gitignores the whole .projectmind/ directory (local-first by default)", () => {
   const r = tmpRoot();
   try {
     init(r);
     const gi = fs.readFileSync(path.join(r, ".gitignore"), "utf8");
-    assert.match(gi, new RegExp(`${DIR}/${LOCAL}`.replace(/[.]/g, "\\.")));
+    assert.ok(gi.split(/\r?\n/).some((l) => l.trim() === `${DIR}/`));
+  } finally { cleanup(r); }
+});
+
+test("init respects a team that shares the map: legacy per-file ignore lines suppress the dir line", () => {
+  const r = tmpRoot();
+  try {
+    // a repo that opted into sharing under the old scheme: only the personal
+    // files ignored, map.json deliberately committed
+    fs.writeFileSync(path.join(r, ".gitignore"), `${DIR}/${LOCAL}\n${DIR}/ledger.json\n`);
+    init(r);
+    const gi = fs.readFileSync(path.join(r, ".gitignore"), "utf8");
+    assert.ok(!gi.split(/\r?\n/).some((l) => l.trim() === `${DIR}/`), "must not override an existing sharing choice");
   } finally { cleanup(r); }
 });

@@ -9,7 +9,7 @@ import {
   embedDigestBlock, committedDigest, embeddedDigestFiles,
   RULES_MARKER_BEGIN, RULES_MARKER_END, DIGEST_BLOCK_BEGIN, DIGEST_BLOCK_END,
 } from "../src/core/index.js";
-import { setupAgents, setupGlobalAgents } from "../src/setup/index.js";
+import { setupAgents, setupGlobalAgents, detectInstalledAgents } from "../src/setup/index.js";
 import { reconcile } from "../src/watch/index.js";
 
 function scaffoldRepo(r) {
@@ -384,4 +384,18 @@ test("proposeSeed still groups loose files sitting directly in src/ under a plai
     assert.ok(p.nodes.src);
     assert.deepEqual(p.nodes.src.files, ["src/**"]);
   } finally { cleanup(r); }
+});
+
+test("detectInstalledAgents finds agents by their config dirs, always includes codex/AGENTS.md", () => {
+  const home = tmpRoot();
+  try {
+    assert.deepEqual(detectInstalledAgents({ homeDir: home }), ["codex"], "bare machine: only the generic standard");
+
+    fs.mkdirSync(path.join(home, ".cursor"), { recursive: true });
+    fs.writeFileSync(path.join(home, ".claude.json"), "{}");
+    const found = detectInstalledAgents({ homeDir: home });
+    assert.ok(found.includes("claude"));
+    assert.ok(found.includes("cursor"));
+    assert.ok(!found.includes("windsurf"), "absent agents stay undetected");
+  } finally { cleanup(home); }
 });

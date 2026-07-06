@@ -84,13 +84,13 @@ test("corrupt ledger self-heals to empty (never crashes a read)", () => {
   } finally { cleanup(r); }
 });
 
-test("init gitignores the ledger alongside the local overlay", () => {
+test("init gitignores .projectmind/ so the ledger (and everything else) stays local", () => {
   const r = tmpRoot();
   try {
     init(r);
-    ensureLocalGitignored(r);
+    ensureLocalGitignored(r); // idempotent — must not duplicate the line
     const gi = fs.readFileSync(path.join(r, ".gitignore"), "utf8");
-    assert.match(gi, /\.projectmind\/ledger\.json/);
-    assert.match(gi, /\.projectmind\/map\.local\.json/);
+    const dirLines = gi.split(/\r?\n/).filter((l) => l.trim() === ".projectmind/");
+    assert.equal(dirLines.length, 1);
   } finally { cleanup(r); }
 });
